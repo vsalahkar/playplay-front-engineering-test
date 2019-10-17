@@ -6,18 +6,17 @@
         </header>
         <main class="baseAddVideo__video">
             <video :src="videoUrl" ref="videoElement"></video>
-            {{videoTrackCursorPosition}}
             <div class="baseAddVideo__trimmer">
                 <button class="trimmer trimmer--start">
                     <i class="material-icons">chevron_left</i>
-                    <span>00:12:53</span>
+                    <span>{{trimStartTime}}</span>
                 </button>
-                <img :src="videoSprite" alt="">
-                <button class="trimmer trimmer--end">
+                <img :src="videoSprite">
+                <button class="trimmer trimmer--end" draggable="true">
                     <i class="material-icons">chevron_right</i>
-                    <span>00:12:53</span>
+                    <span>{{trimEndTime}}</span>
                 </button>
-                <div class="trimmer__currentTimeCursor"  :style="`left: ${this.cursorXPosition}px`"></div>
+                <div class="trimmer__currentTimeCursor" :style="`left: ${this.cursorXPosition}px`"></div>
             </div>
         </main>
         <footer class="baseAddVideo__actions">
@@ -28,11 +27,11 @@
                 <form class="actions__framing">
                     <label class="framing framing__start">
                         Start:
-                        <input type="number">
+                        <input type="number" v-model="trimStartTime">
                     </label>
                     <label class="framing framing__end">
                         End:
-                        <input type="number">
+                        <input type="number" v-model="trimEndTime">
                     </label>
                 </form>
             </div>
@@ -46,12 +45,24 @@
 
 <script>
 export default {
+    mounted() {
+        const videoDomElement = this.$refs.videoElement
+
+        videoDomElement.onloadeddata = () => {
+            const videoDuration = videoDomElement.duration
+            
+            this.trimEndTime = this.convertVideoDurationInHuman(videoDuration)
+        }
+    },
     data: () => {
         return {
             isVideoPlaying: false,
-            videoTrackCursorPosition: null,
             cursorXPosition: 16,
-            cursorXPositionPolling: null
+            cursorXPositionPolling: null,
+            trimStartTime: 0,
+            trimEndTime: 0,
+            trimStartXPosition: 0,
+            trimEndXPosition: 0
         }
     },
     props: {
@@ -87,9 +98,19 @@ export default {
             const videoWidth = domElement.offsetWidth - 32 // video frame has the same width as the frame bar
 
             this.cursorXPosition = 16 + (videoCurrentTime / videoDuration * videoWidth)
+        },
+        convertVideoDurationInHuman(duration) {
+            const minutes = Math.floor(duration / 60)
+            const secondsRemainder = duration % 60
+            const seconds = Math.floor(secondsRemainder)
+            const mSecondsRemainder = Math.round((secondsRemainder - seconds) * 100)
+
+            return `${minutes} : ${seconds} : ${mSecondsRemainder}`
         }
     },
-    beforeDestroy () {
+    computed: {
+    },
+    beforeDestroy() {
         clearInterval(this.cursorXPositionPolling)
     }
 }
@@ -158,6 +179,7 @@ export default {
             span {
                 position: absolute;
                 top: -24px;
+                width: max-content;
                 font-size: 13px;
                 color: $secondary-color;
             }
