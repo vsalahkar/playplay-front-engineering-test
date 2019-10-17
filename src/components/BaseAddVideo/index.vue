@@ -7,16 +7,17 @@
         <main class="baseAddVideo__video">
             <video :src="videoUrl" ref="videoElement"></video>
             <div class="baseAddVideo__trimmer">
-                <button class="trimmer trimmer--start" :style="`left: calc(${trimStartXPosition}px - 2px)`">
+                <div class="trimmer__wrapper"></div>
+                <button class="trimmer trimmer--start" :style="`left: (${trimStartXPosition}px`">
                     <i class="material-icons">chevron_left</i>
                     <span>{{trimStartTime}}</span>
                 </button>
-                <img :src="videoSprite">
-                <button class="trimmer trimmer--end" :style="`left: calc(${trimEndXPosition}px - 18px)`">
+                <img :src="videoSprite" ref="videoTrimmer">
+                <button class="trimmer trimmer--end" :style="`left: ${trimEndXPosition}px`">
                     <i class="material-icons">chevron_right</i>
                     <span>{{trimEndTime}}</span>
                 </button>
-                <div class="trimmer__currentTimeCursor" :style="`left: ${cursorXPosition}px`"></div>
+                <div class="trimmer__currentTimeCursor" :style="`left: calc(${cursorXPosition}px + 16px)`"></div>
             </div>
         </main>
         <footer class="baseAddVideo__actions">
@@ -53,11 +54,13 @@ export default {
 
             this.trimEndTime = this.formatVideoDuration(videoDuration)
         }
+
+        this.$refs.videoTrimmer.addEventListener('click', this.updateVideoCurrentTime)
     },
     data: () => {
         return {
             isVideoPlaying: false,
-            cursorXPosition: 16,
+            cursorXPosition: 0,
             cursorXPositionPolling: null,
             trimStartTime: '00 : 00 : 00',
             trimEndTime: 0,
@@ -92,12 +95,13 @@ export default {
             }, 500)
         },
         setCursorXPosition(domElement) {
+            const trimmerDomElement = this.$refs.videoTrimmer
             const videoCurrentTime = domElement.currentTime
             const videoDuration = domElement.duration
 
-            const videoWidth = domElement.offsetWidth - 32 // video frame has the same width as the frame bar
+            const videoWidth = trimmerDomElement.offsetWidth // video frame has the same width as the frame bar
 
-            this.cursorXPosition = 16 + (videoCurrentTime / videoDuration * videoWidth)
+            this.cursorXPosition = videoCurrentTime / videoDuration * videoWidth
         },
         formatVideoDuration(duration) {
             const minutes = Math.floor(duration / 60)
@@ -111,8 +115,6 @@ export default {
             const minutes = parseInt(duration[0], 10) * 60 || 0
             const seconds = parseInt(duration[1], 10) || 0
             const mSeconds = parseInt(duration[2], 10) / 100 || 0
-
-            console.info(minutes + seconds + mSeconds)
 
             return minutes + seconds + mSeconds
         },
@@ -128,6 +130,18 @@ export default {
             console.info(trimmedDuration / videoDuration * timeFrameWidth)
 
             return trimmedDuration / videoDuration * timeFrameWidth
+        },
+        updateVideoCurrentTime(event) {
+            this.cursorXPosition = event.layerX
+            const videoDomElement = this.$refs.videoElement
+            const trimmerDomElement = this.$refs.videoTrimmer
+            const trimmerElementWidth = trimmerDomElement.offsetWidth
+
+            const timePercentage = this.cursorXPosition / trimmerElementWidth
+
+            const newCurrentTime = timePercentage * videoDomElement.duration
+
+            videoDomElement.fastSeek(newCurrentTime)
         }
     },
     watch: {
@@ -138,9 +152,9 @@ export default {
         },
         trimEndTime(newValue, oldValue) {
             if (newValue !== oldValue) {
-                this.trimEndXPosition = this.setTrimmerXPosition(this.trimEndTime)
+                this.trimEndXPosition = this.setTrimmerXPosition(this.trimEndTime) - 16 // Adjust layout with button width
             }
-        }
+        },
     },
     beforeDestroy() {
         clearInterval(this.cursorXPositionPolling)
@@ -192,25 +206,26 @@ export default {
 
         &__trimmer {
             position: relative;
-            margin-top: 24px;
-            border: 2px solid $secondary-color;
+            margin-top: 32px;
             border-radius: 4px;
             display: flex;
             align-items: center;
 
             img {
-                width: 100%;
+                transform: translateX(16px);
+                width: calc(100% - 32px);
             }
         }
 
         .trimmer {
+            z-index: 2;
             position: absolute;
             background-color: $secondary-color;
             height: 100%;
 
             span {
                 position: absolute;
-                top: -24px;
+                top: -20px;
                 width: max-content;
                 font-size: 13px;
                 color: $secondary-color;
@@ -219,6 +234,16 @@ export default {
             i {
                 font-size: 16px;
                 color: $base-color-light;
+            }
+
+            &__wrapper {
+                position: absolute;
+                left: 50%;
+                transform: translateX(-50%);
+                border: 2px solid $secondary-color;
+                border-radius: 4px;
+                height: 100%;
+                width: calc(100% - 4px);
             }
 
             &--start {
@@ -232,7 +257,6 @@ export default {
             }
 
             &--end {
-                right: -2px;
                 border-top-right-radius: 4px;
                 border-bottom-right-radius: 4px;
 
