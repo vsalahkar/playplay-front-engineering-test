@@ -7,12 +7,12 @@
         <main class="baseAddVideo__video">
             <video :src="videoUrl" ref="videoElement"></video>
             <div class="baseAddVideo__trimmer">
-                <button class="trimmer trimmer--start">
+                <button class="trimmer trimmer--start" :style="`left: calc(${trimStartXPosition}px - 2px)`">
                     <i class="material-icons">chevron_left</i>
                     <span>{{trimStartTime}}</span>
                 </button>
                 <img :src="videoSprite">
-                <button class="trimmer trimmer--end" draggable="true">
+                <button class="trimmer trimmer--end" :style="`left: calc(${trimEndXPosition}px - 18px)`">
                     <i class="material-icons">chevron_right</i>
                     <span>{{trimEndTime}}</span>
                 </button>
@@ -27,11 +27,11 @@
                 <form class="actions__framing">
                     <label class="framing framing__start">
                         Start:
-                        <input type="number" v-model="trimStartTime">
+                        <input type="text" v-model="trimStartTime">
                     </label>
                     <label class="framing framing__end">
                         End:
-                        <input type="number" v-model="trimEndTime">
+                        <input type="text" v-model="trimEndTime">
                     </label>
                 </form>
             </div>
@@ -50,8 +50,8 @@ export default {
 
         videoDomElement.onloadeddata = () => {
             const videoDuration = videoDomElement.duration
-            
-            this.trimEndTime = this.convertVideoDurationInHuman(videoDuration)
+
+            this.trimEndTime = this.formatVideoDuration(videoDuration)
         }
     },
     data: () => {
@@ -99,16 +99,48 @@ export default {
 
             this.cursorXPosition = 16 + (videoCurrentTime / videoDuration * videoWidth)
         },
-        convertVideoDurationInHuman(duration) {
+        formatVideoDuration(duration) {
             const minutes = Math.floor(duration / 60)
             const secondsRemainder = duration % 60
             const seconds = Math.floor(secondsRemainder)
             const mSecondsRemainder = Math.round((secondsRemainder - seconds) * 100)
 
             return `${minutes} : ${seconds} : ${mSecondsRemainder}`
+        },
+        parseVideoDuration(duration) {
+            const minutes = parseInt(duration[0], 10) * 60 || 0
+            const seconds = parseInt(duration[1], 10) || 0
+            const mSeconds = parseInt(duration[2], 10) / 100 || 0
+
+            console.info(minutes + seconds + mSeconds)
+
+            return minutes + seconds + mSeconds
+        },
+        setTrimmerXPosition(timeToParse) {
+            const videoDomElement = this.$refs.videoElement
+
+            const timeFrameWidth = videoDomElement.offsetWidth
+            const videoDuration = videoDomElement.duration
+
+            const durationArray = timeToParse.split(' : ')
+            const trimmedDuration = this.parseVideoDuration(durationArray)
+
+            console.info(trimmedDuration / videoDuration * timeFrameWidth)
+
+            return trimmedDuration / videoDuration * timeFrameWidth
         }
     },
-    computed: {
+    watch: {
+        trimStartTime(newValue, oldValue) {
+            if (newValue !== oldValue) {
+                this.trimStartXPosition = this.setTrimmerXPosition(this.trimStartTime)
+            }
+        },
+        trimEndTime(newValue, oldValue) {
+            if (newValue !== oldValue) {
+                this.trimEndXPosition = this.setTrimmerXPosition(this.trimEndTime)
+            }
+        }
     },
     beforeDestroy() {
         clearInterval(this.cursorXPositionPolling)
