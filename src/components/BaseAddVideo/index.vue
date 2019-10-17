@@ -5,7 +5,8 @@
             <button title="Close and cancel add a video"><i class="material-icons">close</i></button>
         </header>
         <main class="baseAddVideo__video">
-            <video :src="videoUrl"></video>
+            <video :src="videoUrl" ref="videoElement"></video>
+            {{videoTrackCursorPosition}}
             <div class="baseAddVideo__trimmer">
                 <button class="trimmer trimmer--start">
                     <i class="material-icons">chevron_left</i>
@@ -16,12 +17,13 @@
                     <i class="material-icons">chevron_right</i>
                     <span>00:12:53</span>
                 </button>
+                <div class="trimmer__currentTimeCursor"  :style="`left: ${this.cursorXPosition}px`"></div>
             </div>
         </main>
         <footer class="baseAddVideo__actions">
             <div class="actions__parameters">
-                <button class="button button--primary">
-                    <i class="material-icons">play_arrow</i>
+                <button class="button button--primary" @click="toggleVideoPlayback">
+                    <i class="material-icons">{{ isVideoPlaying ? 'pause' : 'play_arrow'}}</i>
                 </button>
                 <form class="actions__framing">
                     <label class="framing framing__start">
@@ -44,6 +46,14 @@
 
 <script>
 export default {
+    data: () => {
+        return {
+            isVideoPlaying: false,
+            videoTrackCursorPosition: null,
+            cursorXPosition: 16,
+            cursorXPositionPolling: null
+        }
+    },
     props: {
         videoUrl: {
             type: String,
@@ -53,6 +63,34 @@ export default {
             type: String,
             default: ''
         },
+    },
+    methods: {
+        toggleVideoPlayback() {
+            const videoDomElement = this.$refs.videoElement
+
+            if (!videoDomElement.paused) {
+                videoDomElement.pause()
+            } else {
+                videoDomElement.play()
+            }
+
+            this.isVideoPlaying = !videoDomElement.paused
+
+            this.cursorXPositionPolling = setInterval(() => {
+                this.setCursorXPosition(videoDomElement)
+            }, 500)
+        },
+        setCursorXPosition(domElement) {
+            const videoCurrentTime = domElement.currentTime
+            const videoDuration = domElement.duration
+
+            const videoWidth = domElement.offsetWidth - 32 // video frame has the same width as the frame bar
+
+            this.cursorXPosition = 16 + (videoCurrentTime / videoDuration * videoWidth)
+        }
+    },
+    beforeDestroy () {
+        clearInterval(this.cursorXPositionPolling)
     }
 }
 </script>
@@ -124,14 +162,6 @@ export default {
                 color: $secondary-color;
             }
 
-            &:first-child span {
-                left: 0;
-            }
-
-            &:last-child span {
-                right: 0;
-            }
-
             i {
                 font-size: 16px;
                 color: $base-color-light;
@@ -141,12 +171,30 @@ export default {
                 left: -2px;
                 border-top-left-radius: 4px;
                 border-bottom-left-radius: 4px;
+
+                span {
+                    left: 0;
+                }
             }
 
             &--end {
                 right: -2px;
                 border-top-right-radius: 4px;
                 border-bottom-right-radius: 4px;
+
+                span {
+                    right: 0;
+                }
+            }
+
+            &__currentTimeCursor {
+                position: absolute;
+                top: 50%;
+                transform: translateY(-50%);
+                background-color: $accent-color-1;
+                height: 100%;
+                width: 2px;
+                cursor: ew-resize;
             }
         }
 
