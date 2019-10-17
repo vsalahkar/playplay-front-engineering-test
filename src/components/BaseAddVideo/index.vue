@@ -16,7 +16,7 @@
                     <i class="material-icons">chevron_right</i>
                     <span>{{trimEndTime}}</span>
                 </button>
-                <div class="trimmer__currentTimeCursor" :style="`left: ${this.cursorXPosition}px`"></div>
+                <div class="trimmer__currentTimeCursor" :style="`left: ${cursorXPosition}px`"></div>
             </div>
         </main>
         <footer class="baseAddVideo__actions">
@@ -59,7 +59,7 @@ export default {
             isVideoPlaying: false,
             cursorXPosition: 16,
             cursorXPositionPolling: null,
-            trimStartTime: 0,
+            trimStartTime: '00 : 00 : 00',
             trimEndTime: 0,
             trimStartXPosition: 0,
             trimEndXPosition: 0
@@ -303,14 +303,10 @@ export default {
                 max-width: 92px;
                 color: $base-color-dark;
                 font-size: 13px;
-            }
 
-            &__start {
-
-            }
-
-            &__end {
-
+                &:focus {
+                    border-color: $tertiary-color;
+                }
             }
         }
     }
